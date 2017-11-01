@@ -25,7 +25,7 @@ public class Viewer3 extends Basic
       System.out.println("Usage:  j Viewer3 world1");
       System.exit(1);
     }
-    Viewer3 app = new Viewer3( "View a Scene", 500, 500, 30, args[0] );
+    Viewer3 app = new Viewer3( "View a Scene", 800, 800, 30, args[0] );
     app.start();
   }// main
 
@@ -49,6 +49,10 @@ public class Viewer3 extends Basic
   // locations of the uniform variables:
   private int eLoc, eaLoc, baLoc, caLoc;
 
+  // Unit speed of camera
+  private double speed = 0;
+
+
   // construct basic application with given title, pixel width and height
   // of drawing area, and frames per second
   public Viewer3( String appTitle, int pw, int ph, int fps, String fileName )
@@ -56,37 +60,153 @@ public class Viewer3 extends Basic
     super( appTitle, pw, ph, (long) ((1.0/fps)*1000000000) );
 
     // initial viewing setup
-    eye = new Triple( 50, 0, 0 );
+    eye = new Triple( 50, -1, 10 );
     azimuth = 90;  
     altitude = 0;
     distance = 2;    
 
+    sceneTris = new TriList();
+    try {
+      // Build ground and buildings
+      ground(50, 50, 100, 100); 
+      building(2, 2, 4, 4, 25);
+      building(50, 50, 3, 3, 30);
+      building(4, 6, 3, 8, 50);
+      building(70, 70, 10, 3, 45);
+      building(20, 80, 10, 20, 35);
+      building(90, 85, 5, 10, 22);
+      building(35, 40, 4, 6, 18);
+      building(10, 28, 4, 3, 35);
+      building(10, 90, 5, 5, 25);
+      building(36, 90, 3, 5, 16);
+      building(40, 5, 2, 2, 10);
+      building(45, 75, 3, 3, 20);
+      building(55, 60, 4, 5, 25);
+      building(25, 60, 3, 5, 15);
+      building(38, 35, 4, 3, 24);
+      building(60, 30, 2, 2, 18);
+      building(90, 5, 3, 5, 38);
+      building(80, 40, 4, 2, 22);
+      building(75, 60, 4, 4, 20);
+      building(80, 50, 2, 2, 16);
+      building(65, 20, 5, 6, 30);
+      building(25, 25, 4, 4, 16);          
+
+    }
+    catch(Exception ex)
+    {
+      System.out.println("Buildings could not be loaded");
+    }
     // get model triangle data from file
+/*   // Uncomment below code to get model triangles from a file instead of the hardcoded building method
     Scanner input;
     try {
+
       input = new Scanner( new File( fileName ) );
       
       // read number of triangles
       int num = input.nextInt();  input.nextLine();
 
       sceneTris = new TriList();
-
+      // building(50, 50, 10, 20, 40);
       for( int k=0; k<num; k++ ) {
         Triangle tri = new Triangle( input );
         // System.out.println("got triangle " + k + ": " + tri );
         sceneTris.add( tri );
       }
+
     }
     catch( Exception exc ) {
       System.out.println("problem loading data file");
       exc.printStackTrace();
       System.exit(1);
     }
-
+*/
 System.out.println("Finished constructor up to not including updateView");
     updateView();
 
   }// constructor
+
+  // Creates a building based on given coordinates and size information
+  protected void building(double xCoord, double yCoord, double len, double width, double height)
+  {
+    double x1 = (xCoord - (width/2));	// Low x
+    double x2 = (xCoord + (width/2));	// High x
+    double y1 = (yCoord - (len/2));	// Low y
+    double y2 = (yCoord + (len/2));	// High y
+
+    Vertex vertex1, vertex2, vertex3;
+
+    Triple pos1, pos2, pos3, pos4, pos5, pos6, pos7, pos8, col1, col2, col3, col4;
+    Vertex vert1, vert2, vert3;
+
+    pos1 = new Triple(x1, y1, 0);
+    pos2 = new Triple(x2, y1, 0);
+    pos3 = new Triple(x2, y1, height);
+    pos4 = new Triple(x1, y1, height);
+    pos5 = new Triple(x1, y2, 0);
+    pos6 = new Triple(x2, y2, 0);
+    pos7 = new Triple(x2, y2, height);
+    pos8 = new Triple(x1, y2, height);
+
+    col1 = new Triple(1, 0, 0);
+    col2 = new Triple(0, 1, 0);
+    col3 = new Triple(0, 0, 1);
+    col4 = new Triple(1, 0, 1);
+    
+    // Front Triangles
+    Triangle tri1 = new Triangle(new Vertex(pos1, col1), new Vertex(pos2, col1), new Vertex(pos3, col1));
+    Triangle tri2 = new Triangle(new Vertex(pos3, col1), new Vertex(pos4, col1), new Vertex(pos1, col1));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2);
+    
+    // Left Triangles
+    tri1 = new Triangle(new Vertex(pos1, col2), new Vertex(pos5, col2), new Vertex(pos8, col2));
+    tri2 = new Triangle(new Vertex(pos8, col2), new Vertex(pos4, col2), new Vertex(pos1, col2));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2);
+
+    // Right Triangles
+    tri1 = new Triangle(new Vertex(pos2, col3), new Vertex(pos6, col3), new Vertex(pos7, col3));
+    tri2 = new Triangle(new Vertex(pos7, col3), new Vertex(pos3, col3), new Vertex(pos2, col3));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2);
+
+    // Back Triangles
+    tri1 = new Triangle(new Vertex(pos5, col4), new Vertex(pos6, col4), new Vertex(pos7, col4));
+    tri2 = new Triangle(new Vertex(pos7, col4), new Vertex(pos8, col4), new Vertex(pos5, col4));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2);
+
+    // Top Triangles
+    tri1 = new Triangle(new Vertex(pos4, col1), new Vertex(pos3, col2), new Vertex(pos7, col3));
+    tri2 = new Triangle(new Vertex(pos7, col3), new Vertex(pos8, col2), new Vertex(pos4, col1));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2); 
+  }
+ 
+  // Creates a ground based on given coordinate and size information
+  protected void ground(double xCoord, double yCoord, double len, double width)
+  {
+    double x1 = (xCoord - (width/2));
+    double x2 = (xCoord + (width/2));
+    double y1 = (yCoord - (len/2));
+    double y2 = (yCoord + (len/2));
+
+    Triple pos1, pos2, pos3, pos4, col1;
+
+    pos1 = new Triple(x1, y1, 0);
+    pos2 = new Triple(x2, y1, 0);
+    pos3 = new Triple(x2, y2, 0);
+    pos4 = new Triple(x1, y2, 0);
+    col1 = new Triple(0.5, 0.5, 0.5);
+
+    Triangle tri1 = new Triangle(new Vertex(pos1, col1), new Vertex(pos2, col1), new Vertex(pos3, col1));
+    Triangle tri2 = new Triangle(new Vertex(pos3, col1), new Vertex(pos4, col1), new Vertex(pos1, col1));
+    sceneTris.add(tri1);
+    sceneTris.add(tri2);
+     
+  }
 
   protected void init()
   {
@@ -234,6 +354,12 @@ System.out.println("Found locations: " + eLoc + " " + eaLoc + " " + baLoc + " " 
           if( distance < 0.1 ) distance = 0.1;
           updateViewAndSend();
         }
+        else if( code == GLFW.GLFW_KEY_UP && mods == 0) {// UP increases speed
+          speed--;
+        }
+        else if( code == GLFW.GLFW_KEY_DOWN && mods == 0) {// DOWN decreases speed
+          speed++;
+        }
 
       }// input event is a key
 
@@ -253,6 +379,15 @@ System.out.println("Found locations: " + eLoc + " " + eaLoc + " " + baLoc + " " 
 
   protected void update()
   {
+
+    // Updates speed of camera
+    if(speed != 0)
+    {
+      // Changes position of eye based on unit of speed
+      // Change coefficient of speed to change how fast the camera moves per speed unit
+      eye = eye.plus(eMinusA.mult(speed*0.01));
+      updateViewAndSend();
+    }
   }
 
   protected void display()
